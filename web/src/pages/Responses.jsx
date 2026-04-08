@@ -3,12 +3,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { Check, Clock, Edit3, X, ShieldCheck, ListChecks } from 'lucide-react';
+import { Check, Clock, Edit3, X, ShieldCheck, ListChecks, ChevronLeft, FileText } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 const Responses = () => {
   const { userProfile } = useAuth();
   const [responses, setResponses] = useState([]);
+  const [surveys, setSurveys] = useState([]);
+  const [activeSurvey, setActiveSurvey] = useState(null);
   const [filter, setFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -17,30 +19,44 @@ const Responses = () => {
   const [selectedResponse, setSelectedResponse] = useState(null);
 
   useEffect(() => {
-    fetchResponses();
+    fetchResponsesAndSurveys();
   }, [userProfile]);
 
-  const fetchResponses = async () => {
+  const fetchResponsesAndSurveys = async () => {
     if (!userProfile?.id) return;
     try {
       const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
-      const q = query(collection(db, 'responses'), where('orgId', '==', userProfile.id));
       
-      const snap = await withTimeout(getDocs(q), 3000);
-      setResponses(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const qResp = query(collection(db, 'responses'), where('orgId', '==', userProfile.id));
+      const qSurv = query(collection(db, 'surveys'), where('orgId', '==', userProfile.id));
+      
+      // If either query fails (times out, permission denied, etc.), it will throw and go to the catch block
+      const [snapResp, snapSurv] = await Promise.all([
+          withTimeout(getDocs(qResp), 3000),
+          withTimeout(getDocs(qSurv), 3000)
+      ]);
+      
+      setResponses(snapResp.docs.map(d => ({ id: d.id, ...d.data() })));
+      setSurveys(snapSurv.docs.map(d => ({ id: d.id, ...d.data() })));
+      
     } catch (err) {
-      console.warn('Firebase query timed out. Displaying fallback UI data.', err);
+      console.warn('Firebase query timed out or failed. Displaying fallback UI data.', err);
       // Fallback Data
       setResponses([
          { id: '1', status: 'pending', surveyId: 'SURV-FOOD-001', volunteerId: 'John Doe', submittedAt: new Date(), location: { lat: 23.2599, lng: 77.4126 }, answers: [{fieldId: 'Headcount', value: '120'}] },
          { id: '2', status: 'approved', surveyId: 'SURV-MED-002', volunteerId: 'Alice Smith', submittedAt: new Date(), location: { lat: 23.2699, lng: 77.4226 }, answers: [{fieldId: 'Urgency', value: 'High'}] }
+      ]);
+      setSurveys([
+         { id: 'surv1', title: 'Food Distribution', surveyCode: 'SURV-FOOD-001', description: 'Log of distributed food packets' },
+         { id: 'surv2', title: 'Medical Resources', surveyCode: 'SURV-MED-002', description: 'Feedback on medical camps' }
       ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredResponses = responses.filter(r => filter === 'All' ? true : r.status.toLowerCase() === filter.toLowerCase());
+  const currentSurveyResponses = activeSurvey ? responses.filter(r => r.surveyId === activeSurvey.surveyCode || r.surveyId === activeSurvey.id) : [];
+  const filteredResponses = currentSurveyResponses.filter(r => filter === 'All' ? true : r.status.toLowerCase() === filter.toLowerCase());
 
   const handleApprove = async (id) => {
     try {
@@ -95,37 +111,85 @@ const Responses = () => {
   return (
     <div className="flex h-full gap-6">
       <Toaster position="top-right" />
-      <div className={`flex-grow space-y-6 transition-all ${selectedResponse ? 'w-2/3' : 'w-full'}`}>
-        <div className="flex justify-between items-center mb-10">
-          <div>
-            <h1 className="text-3xl font-display font-black text-slate-900 tracking-tight">Survey Responses</h1>
-            <p className="text-slate-500 font-medium mt-1 tracking-wide">Review and verify field data</p>
-          </div>
-          <div className="flex items-center space-x-4">
-             {selectedIds.length > 0 && (
-                <button 
-                   onClick={handleBulkApprove}
-                   className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
-                >
-                   <ListChecks className="w-4 h-4 mr-2" />
-                   Approve Selected ({selectedIds.length})
-                </button>
-             )}
-             <div className="flex space-x-2 bg-white rounded-xl p-1 shadow-sm border border-gray-100">
-                {['All', 'Pending', 'Approved', 'Analysed'].map(f => (
-               <button 
-                 key={f}
-                 onClick={() => setFilter(f)}
-                 className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                   filter === f ? 'bg-primary-50 text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
-                 }`}
-               >
-                 {f}
-               </button>
-             ))}
-            </div>
-          </div>
+      
+      {!activeSurvey ? (
+        <div className="flex-grow flex flex-col space-y-6">
+           <div>
+             <h1 className="text-3xl font-display font-black text-slate-900 tracking-tight">Survey Responses</h1>
+             <p className="text-slate-500 font-medium mt-1 tracking-wide">Select a survey to view its responses</p>
+           </div>
+           
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {surveys.length === 0 ? (
+               <div className="col-span-full text-center py-12 glass rounded-2xl">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold">No Surveys Found</h3>
+                  <p className="text-gray-500 max-w-sm mx-auto mt-2">You don't have any active surveys to show responses for.</p>
+               </div>
+            ) : (
+              surveys.map(survey => {
+                 const respCount = responses.filter(r => r.surveyId === survey.surveyCode || r.surveyId === survey.id).length;
+                 const pendingCount = responses.filter(r => (r.surveyId === survey.surveyCode || r.surveyId === survey.id) && r.status === 'pending').length;
+                 return (
+                   <div key={survey.id} onClick={() => setActiveSurvey(survey)} className="glass p-6 rounded-2xl hover:border-primary-300 transition-all cursor-pointer shadow-sm hover:shadow-md block">
+                      <div className="flex justify-between items-start mb-4">
+                         <div className="bg-primary-50 text-primary-700 font-mono px-3 py-1 rounded-lg font-bold tracking-wider text-sm">
+                           {survey.surveyCode}
+                         </div>
+                         {pendingCount > 0 && (
+                            <span className="bg-orange-100 text-orange-800 text-xs font-bold px-2 py-1 rounded-full">
+                               {pendingCount} Pending
+                            </span>
+                         )}
+                      </div>
+                      <h3 className="font-bold text-lg text-gray-900 mb-2 truncate">{survey.title}</h3>
+                      <p className="text-sm text-gray-500 mb-4 line-clamp-2 min-h-[40px]">{survey.description}</p>
+                      <div className="pt-4 border-t flex justify-between text-sm text-gray-500 font-medium">
+                         <span>{respCount} Total Responses</span>
+                      </div>
+                   </div>
+                 );
+              })
+            )}
+           </div>
         </div>
+      ) : (
+        <div className={`flex-grow space-y-6 transition-all ${selectedResponse ? 'w-2/3' : 'w-full'}`}>
+          <div className="mb-2">
+             <button onClick={() => { setActiveSurvey(null); setSelectedResponse(null); }} className="text-primary-600 hover:text-primary-700 text-sm font-bold flex items-center mb-4 transition-colors w-fit">
+                <ChevronLeft className="w-4 h-4 mr-1" /> Back to Surveys
+             </button>
+             <div className="flex justify-between items-end">
+                <div>
+                  <h1 className="text-3xl font-display font-black text-slate-900 tracking-tight">{activeSurvey.title}</h1>
+                  <p className="text-slate-500 font-medium mt-1 tracking-wide">Responses for {activeSurvey.surveyCode}</p>
+                </div>
+                <div className="flex items-center space-x-4">
+                   {selectedIds.length > 0 && (
+                      <button 
+                         onClick={handleBulkApprove}
+                         className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                      >
+                         <ListChecks className="w-4 h-4 mr-2" />
+                         Approve Selected ({selectedIds.length})
+                      </button>
+                   )}
+                   <div className="flex space-x-2 bg-white rounded-xl p-1 shadow-sm border border-gray-100 mt-2">
+                      {['All', 'Pending', 'Approved', 'Analysed'].map(f => (
+                     <button 
+                       key={f}
+                       onClick={() => setFilter(f)}
+                       className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                         filter === f ? 'bg-primary-50 text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                       }`}
+                     >
+                       {f}
+                     </button>
+                    ))}
+                   </div>
+                </div>
+             </div>
+          </div>
 
         <div className="glass-panel overflow-hidden rounded-3xl">
           <table className="w-full text-left text-sm text-slate-500">
@@ -183,6 +247,7 @@ const Responses = () => {
           </table>
         </div>
       </div>
+      )}
 
       {/* Slide-over panel for review */}
       {selectedResponse && (

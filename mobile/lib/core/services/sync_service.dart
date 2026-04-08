@@ -1,61 +1,100 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:hive/hive.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
+// lib/core/services/sync_service.dart
+// Full sync engine — syncs pending offline responses to Firestore.
+// Listens to connectivity changes and auto-syncs on reconnection.
+// Exposes a ChangeNotifier for progress updates on the UI.
 
-class SyncService {
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
+import 'hive_service.dart';
+
+class SyncService extends ChangeNotifier {
   static final SyncService _instance = SyncService._internal();
   factory SyncService() => _instance;
   SyncService._internal();
 
-  final Connectivity _connectivity = Connectivity();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _isSyncing = false;
+  int _pendingCount = 0;
+  String? _lastSyncMessage;
 
+  bool get isSyncing => _isSyncing;
+  int get pendingCount => _pendingCount;
+  String? get lastSyncMessage => _lastSyncMessage;
+
+  // ─── Connectivity Listener ─────────────────────────────────────────────────
+
+  /// Must be called after app start. Automatically syncs on reconnection.
   void initConnectivityListener() {
-    _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {
+    _refreshPendingCount();
+    Connectivity().onConnectivityChanged.listen((results) {
       final isOnline = !results.contains(ConnectivityResult.none);
       if (isOnline) {
-        _syncPendingResponses();
+        debugPrint('[SyncService] Connection restored — attempting sync...');
+        attemptSync();
       }
     });
   }
 
-  Future<void> _syncPendingResponses() async {
-    try {
-      final box = Hive.box('responses_sync');
-      final pendingKeys = box.keys.toList();
+  // ─── Sync Logic ────────────────────────────────────────────────────────────
 
-      if (pendingKeys.isEmpty) return;
+  /// Syncs all pending offline responses to Firestore.
+  /// Safe to call multiple times — no-ops if already syncing or offline.
+  Future<void> attemptSync() async {
+    if (_isSyncing) return;
 
-      debugPrint('Syncing ${pendingKeys.length} pending responses to Firestore...');
-
-      final batch = _firestore.batch();
-      final collection = _firestore.collection('responses');
-
-      for (var key in pendingKeys) {
-        final data = Map<String, dynamic>.from(box.get(key));
-        
-        // Ensure data is ready for upload
-        data['syncedAt'] = FieldValue.serverTimestamp();
-        data['status'] = 'pending'; // Requires admin review
-        
-        final docRef = collection.doc();
-        batch.set(docRef, data);
-      }
-
-      await batch.commit();
-
-      // Clear synced items
-      await box.deleteAll(pendingKeys);
-      debugPrint('Sync complete!');
-
-    } catch (e) {
-      debugPrint('Error syncing to Firestore: $e');
+    final pending = HiveService.getPendingResponses();
+    if (pending.isEmpty) {
+      _refreshPendingCount();
+      return;
     }
+
+    _isSyncing = true;
+    _lastSyncMessage = null;
+    notifyListeners();
+
+    int successCount = 0;
+
+    for (final entry in pending) {
+      try {
+        final data = Map<String, dynamic>.from(entry.value);
+        data['syncedAt'] = FieldValue.serverTimestamp();
+
+        final ref = await FirebaseFirestore.instance
+            .collection('responses')
+            .add(data);
+
+        await HiveService.removePendingResponse(entry.key);
+        await HiveService.markSynced(ref.id);
+        successCount++;
+      } catch (e) {
+        debugPrint('[SyncService] Failed to sync entry ${entry.key}: $e');
+        // Keep in Hive, try again next time
+      }
+    }
+
+    _isSyncing = false;
+
+    if (successCount > 0) {
+      _lastSyncMessage =
+          '$successCount response${successCount == 1 ? '' : 's'} synced successfully';
+    }
+
+    _refreshPendingCount();
+    notifyListeners();
   }
 
-  Future<void> saveResponseOffline(Map<String, dynamic> responseData) async {
-    final box = Hive.box('responses_sync');
-    await box.add(responseData);
+  // ─── Offline Save ──────────────────────────────────────────────────────────
+
+  /// Saves a response locally when offline.
+  Future<void> saveResponseOffline(Map<String, dynamic> data) async {
+    await HiveService.savePendingResponse(data);
+    _refreshPendingCount();
+    notifyListeners();
+  }
+
+  // ─── Internal ──────────────────────────────────────────────────────────────
+
+  void _refreshPendingCount() {
+    _pendingCount = HiveService.pendingCount;
   }
 }

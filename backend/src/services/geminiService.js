@@ -1,5 +1,34 @@
 const { GoogleGenAI } = require("@google/genai");
 
+const URGENCY_ANALYSIS_PROMPT = (responses) => `
+You are a humanitarian data analyst working for an NGO coordination platform.
+
+Analyse the following community survey responses collected by field volunteers.
+Group nearby responses into geographic clusters and identify the most urgent needs.
+
+Return ONLY a valid JSON array. No markdown, no explanation, no backticks.
+Each object in the array must have exactly these fields:
+{
+  "areaName": "descriptive name of the affected area",
+  "urgencyScore": number from 1 to 10,
+  "category": one of exactly: "food", "medical", "shelter", "education", "water",
+  "numberOfPeopleAffected": estimated number as integer,
+  "requiredSkills": array containing only values from: ["medical", "education", "logistics", "construction", "counselling"],
+  "recommendedAction": "specific actionable recommendation in one sentence",
+  "reasoning": "brief explanation of why this urgency score was assigned",
+  "location": { "lat": number, "lng": number }
+}
+
+Survey responses to analyse:
+${JSON.stringify(responses)}
+`;
+
+const TASK_SUMMARY_PROMPT = (task) => `
+Summarise this humanitarian task in 2 sentences for a volunteer notification.
+Be clear, direct, and urgency-appropriate. No bullet points.
+Task data: ${JSON.stringify(task)}
+`;
+
 /**
  * Service to call Gemini API for clustered responses
  * 
@@ -11,21 +40,9 @@ const analyseResponses = async (responses) => {
     // The client gets the API key from the environment variable GEMINI_API_KEY.
     const ai = new GoogleGenAI({});
 
-    const prompt = `You are a humanitarian data analyst. Analyse these community survey responses 
-    and return ONLY a valid JSON array with no markdown formatting. Each object must have:
-    - areaName: string
-    - urgencyScore: number between 1 and 10
-    - category: one of food, medical, shelter, education, water
-    - numberOfPeopleAffected: number
-    - requiredSkills: array of strings from [medical, education, logistics, construction, counselling]
-    - recommendedAction: string
-    - reasoning: string
-    
-    Survey responses: ${JSON.stringify(responses, null, 2)}`;
-
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: prompt,
+      contents: URGENCY_ANALYSIS_PROMPT(responses),
     });
     
     let text = response.text;

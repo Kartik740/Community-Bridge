@@ -41,11 +41,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_FAKE_API_KEY',
-    appId: '1:123456789:android:abcdef',
-    messagingSenderId: '123456789',
-    projectId: 'demo-project',
-    storageBucket: 'demo-project.appspot.com',
+    apiKey: 'AIzaSyAsnOw8YZQyYGqdvc6-UE49vYU7Oklx7_w',
+    appId: '1:232110250660:web:6b838735173699a820e431',
+    messagingSenderId: '232110250660',
+    projectId: 'community-bridge-4a87d',
+    storageBucket: 'community-bridge-4a87d.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

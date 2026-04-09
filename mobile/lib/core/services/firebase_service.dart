@@ -72,16 +72,12 @@ class FirebaseService {
   // ─── Organisations ──────────────────────────────────────────────────────────
 
   /// Fetches all NGOs for the selection list in register step 3.
+  /// Throws on error so callers can show a meaningful message.
   static Future<List<Map<String, dynamic>>> getAllOrganisations() async {
-    try {
-      final snap = await organisations.get();
-      return snap.docs
-          .map((d) => {'id': d.id, ...d.data() as Map<String, dynamic>})
-          .toList();
-    } catch (e) {
-      debugPrint('[FirebaseService] getAllOrganisations error: $e');
-      return [];
-    }
+    final snap = await organisations.get();
+    return snap.docs
+        .map((d) => {'id': d.id, ...d.data() as Map<String, dynamic>})
+        .toList();
   }
 
   // ─── Response Helpers ──────────────────────────────────────────────────────

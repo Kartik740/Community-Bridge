@@ -46,6 +46,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   List<Map<String, dynamic>> _organisations = [];
   Map<String, dynamic>? _selectedOrg;
   bool _loadingOrgs = true;
+  String? _orgsError;
   bool _submitting = false;
 
   @override
@@ -57,12 +58,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _loadOrganisations() async {
-    final orgs = await FirebaseService.getAllOrganisations();
-    if (mounted) {
-      setState(() {
-        _organisations = orgs;
-        _loadingOrgs = false;
-      });
+    setState(() {
+      _loadingOrgs = true;
+      _orgsError = null;
+    });
+    try {
+      final orgs = await FirebaseService.getAllOrganisations();
+      if (mounted) {
+        setState(() {
+          _organisations = orgs;
+          _loadingOrgs = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[RegisterScreen] loadOrganisations error: $e');
+      if (mounted) {
+        setState(() {
+          _loadingOrgs = false;
+          _orgsError = 'Could not load NGOs. Tap to retry.';
+        });
+      }
     }
   }
 
@@ -356,7 +371,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Expanded(
           child: _loadingOrgs
               ? const Center(child: CircularProgressIndicator())
-              : _organisations.isEmpty
+              : _orgsError != null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.cloud_off_rounded,
+                                size: 48, color: Colors.grey),
+                            const SizedBox(height: 12),
+                            Text(
+                              _orgsError!,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                  color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _loadOrganisations,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : _organisations.isEmpty
                   ? Center(
                       child: Text(
                         'No NGOs found. Check your connection.',

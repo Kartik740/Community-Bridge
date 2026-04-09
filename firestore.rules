@@ -2,17 +2,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Organisations — authenticated users can read all orgs (needed for NGO selection in register)
+    // Organisations — public read so unauthenticated users can browse NGOs
+    // during the registration flow (Step 3 runs before any auth account exists).
+    // Writes are restricted to the owning org admin only.
     match /organisations/{orgId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if request.auth != null && request.auth.uid == orgId;
     }
 
     // Surveys — any authenticated user can read (volunteers need to fetch by code)
     match /surveys/{surveyId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.auth.uid == resource.data.orgId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.orgId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.orgId;
     }
 
     // Responses — authenticated volunteers can create, org owner can read/update

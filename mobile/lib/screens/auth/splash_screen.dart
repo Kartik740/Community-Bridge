@@ -56,7 +56,6 @@ class _SplashScreenState extends State<SplashScreen>
         context.read<AuthProvider>().addListener(_onAuthChanged);
         break;
       case AuthStatus.unauthenticated:
-      default:
         _replace(const LoginScreen());
         break;
     }
@@ -102,7 +101,7 @@ class _SplashScreenState extends State<SplashScreen>
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Icon(
@@ -125,7 +124,7 @@ class _SplashScreenState extends State<SplashScreen>
               Text(
                 'Volunteer Field App',
                 style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.75),
+                  color: Colors.white.withValues(alpha: 0.75),
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                 ),
@@ -137,7 +136,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.white.withOpacity(0.5),
+                    Colors.white.withValues(alpha: 0.5),
                   ),
                 ),
               ),

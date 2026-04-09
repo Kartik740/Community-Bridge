@@ -78,7 +78,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                   Container(
                     width: 120,
                     height: 120,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.warningLight,
                       shape: BoxShape.circle,
                     ),
@@ -118,7 +118,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
+                          valueColor: const AlwaysStoppedAnimation<Color>(
                               AppColors.warning),
                         ),
                       ),

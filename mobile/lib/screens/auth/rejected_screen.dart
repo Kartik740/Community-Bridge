@@ -70,7 +70,7 @@ class RejectedScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.criticalLight,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.critical.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.critical.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

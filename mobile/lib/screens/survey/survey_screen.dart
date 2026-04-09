@@ -50,8 +50,10 @@ class _SurveyScreenState extends State<SurveyScreen> {
 
     // 2. Try Firestore, fallback to Hive
     try {
-      final connectivityResult = await Connectivity().checkConnectivity();
-      final isOnline = !connectivityResult.contains(ConnectivityResult.none);
+      final dynamic connectivityResult = await Connectivity().checkConnectivity();
+      final isOnline = connectivityResult is List
+          ? !connectivityResult.contains(ConnectivityResult.none)
+          : connectivityResult != ConnectivityResult.none;
       
       final box = Hive.box('surveys');
 
@@ -115,8 +117,10 @@ class _SurveyScreenState extends State<SurveyScreen> {
         'submittedAt': DateTime.now().toIso8601String()
      };
 
-     final connectivityResult = await Connectivity().checkConnectivity();
-     final isOnline = !connectivityResult.contains(ConnectivityResult.none);
+     final dynamic connectivityResult = await Connectivity().checkConnectivity();
+     final isOnline = connectivityResult is List
+         ? !connectivityResult.contains(ConnectivityResult.none)
+         : connectivityResult != ConnectivityResult.none;
 
      if (isOnline) {
          submissionData['syncedAt'] = FieldValue.serverTimestamp();
@@ -126,7 +130,10 @@ class _SurveyScreenState extends State<SurveyScreen> {
      } else {
          // Offline logic
          await SyncService().saveResponseOffline(submissionData);
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved Offline. It will sync automatically when online.', backgroundColor: Colors.orange)));
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+           content: Text('Saved Offline. It will sync automatically when online.'),
+           backgroundColor: Colors.orange,
+         ));
      }
      
      if (mounted) Navigator.pop(context);

@@ -26,8 +26,10 @@ class SyncService extends ChangeNotifier {
   /// Must be called after app start. Automatically syncs on reconnection.
   void initConnectivityListener() {
     _refreshPendingCount();
-    Connectivity().onConnectivityChanged.listen((results) {
-      final isOnline = !results.contains(ConnectivityResult.none);
+    Connectivity().onConnectivityChanged.listen((dynamic results) {
+      final bool isOnline = results is List
+          ? !results.contains(ConnectivityResult.none)
+          : results != ConnectivityResult.none;
       if (isOnline) {
         debugPrint('[SyncService] Connection restored — attempting sync...');
         attemptSync();

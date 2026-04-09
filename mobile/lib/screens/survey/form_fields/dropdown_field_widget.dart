@@ -33,7 +33,7 @@ class _DropdownFieldWidgetState extends State<DropdownFieldWidget> {
         ),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: _selected,
+          initialValue: _selected,
           decoration: InputDecoration(errorText: widget.errorText),
           hint: Text('Select ${widget.field.label.toLowerCase()}',
               style: GoogleFonts.inter(color: AppColors.textHint, fontSize: 14)),

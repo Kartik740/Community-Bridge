@@ -30,14 +30,17 @@ service cloud.firestore {
 
     // Volunteer Requests — volunteer creates own; org reads all for their org; org updates status
     match /volunteerRequests/{requestId} {
-      // Volunteer can create their own request (requestId == their UID)
-      allow create: if request.auth != null && request.auth.uid == requestId;
+      // Volunteer can create OR update their own request (requestId == their UID)
+      // This covers initial registration and retries after partial failures
+      allow create, update: if request.auth != null && request.auth.uid == requestId;
+      // Org admin can also update status (approve/reject)
+      allow update: if request.auth != null
+        && resource != null
+        && request.auth.uid == resource.data.orgId;
       // Volunteer can read their own request (for status polling)
       allow read: if request.auth != null
-        && (request.auth.uid == requestId || request.auth.uid == resource.data.orgId);
-      // Org admin can update status (approve/reject); volunteer cannot update
-      allow update: if request.auth != null
-        && request.auth.uid == resource.data.orgId;
+        && (request.auth.uid == requestId
+            || (resource != null && request.auth.uid == resource.data.orgId));
     }
 
     // Tasks — all authenticated users can read, volunteers can update own task status

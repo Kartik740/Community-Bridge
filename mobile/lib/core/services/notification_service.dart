@@ -96,7 +96,7 @@ class NotificationService {
       notification.title,
       notification.body,
       NotificationDetails(
-        android: AndroidNotificationDetails(
+        android: const AndroidNotificationDetails(
           'community_bridge_tasks',
           'Task Notifications',
           channelDescription: 'Notifications for new task assignments',

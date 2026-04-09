@@ -38,9 +38,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePass = true;
 
   // Step 2 data
-  late List<String> _selectedSkills = List.from(widget.prefillData?.skills ?? []);
-  late String? _selectedAvailability = widget.prefillData?.availabilityTime;
-  final _motivationCtrl = TextEditingController(text: widget.prefillData?.motivation);
+  List<String> _selectedSkills = [];
+  String? _selectedAvailability;
+  late final _motivationCtrl = TextEditingController(text: widget.prefillData?.motivation);
 
   // Step 3 data
   List<Map<String, dynamic>> _organisations = [];
@@ -51,6 +51,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedSkills = List.from(widget.prefillData?.skills ?? []);
+    _selectedAvailability = widget.prefillData?.availabilityTime;
     _loadOrganisations();
   }
 
@@ -193,16 +195,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 250),
-              child: IndexedStack(
+              child: Container(
                 key: ValueKey(_currentStep),
-                index: _currentStep,
-                children: [_step1(), _step2(), _step3()],
+                child: _buildCurrentStep(),
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildCurrentStep() {
+    switch (_currentStep) {
+      case 0:
+        return _step1();
+      case 1:
+        return _step2();
+      case 2:
+        return _step3();
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   // ─── Step 1: Account Details ──────────────────────────────────────────────

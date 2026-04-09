@@ -25,6 +25,9 @@ class AuthProvider extends ChangeNotifier {
   VolunteerModel? _volunteer;
   VolunteerRequestModel? _request;
   String? _error;
+  // Guards against the authStateChanges listener clobbering a pending
+  // in-progress login/register operation.
+  bool _resolvingManually = false;
 
   AuthStatus get status => _status;
   VolunteerModel? get volunteer => _volunteer;
@@ -46,6 +49,8 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return;
       }
+      // Skip if login/register is resolving status manually to avoid race.
+      if (_resolvingManually) return;
       await _resolveStatus(user.uid);
     });
   }
@@ -94,26 +99,54 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> login(String email, String password) async {
     _error = null;
     _status = AuthStatus.loading;
+    _resolvingManually = true;
     notifyListeners();
 
+    String? resolvedUid;
     try {
-      await _auth.signInWithEmailAndPassword(
+      final cred = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password.trim(),
       );
-      // _init listener will call _resolveStatus automatically
-      return true;
+      resolvedUid = cred.user!.uid;
     } on FirebaseAuthException catch (e) {
+      debugPrint('[AuthProvider] Login FirebaseAuthException: ${e.code}');
       _error = _authErrorMessage(e.code);
       _status = AuthStatus.unauthenticated;
+      _resolvingManually = false;
       notifyListeners();
       return false;
     } catch (e) {
-      _error = 'Login failed. Check your connection.';
-      _status = AuthStatus.unauthenticated;
+      debugPrint('[AuthProvider] Login raw error: $e');
+      // firebase_auth v4.x has a Pigeon deserialization bug on some Android
+      // emulators where the result codec fails AFTER the user is signed in.
+      // _auth.currentUser is already populated in that case — recover from it.
+      final currentUser = _auth.currentUser;
+      if (currentUser != null && e.toString().contains('PigeonUserDetails')) {
+        debugPrint('[AuthProvider] Pigeon bug detected, recovering with currentUser uid=${currentUser.uid}');
+        resolvedUid = currentUser.uid;
+      } else {
+        _error = 'Login failed. Check your connection.';
+        _status = AuthStatus.unauthenticated;
+        _resolvingManually = false;
+        notifyListeners();
+        return false;
+      }
+    }
+
+    // Resolve Firestore status for this user
+    await _resolveStatus(resolvedUid!);
+    _resolvingManually = false;
+
+    // If no Firestore document was found, the auth account exists but the
+    // application profile does not (orphaned account).
+    if (_status == AuthStatus.unauthenticated) {
+      _error = 'No volunteer profile found. Please complete registration first.';
       notifyListeners();
       return false;
     }
+
+    return true;
   }
 
   // ─── Register ──────────────────────────────────────────────────────────────
@@ -122,35 +155,72 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> register(VolunteerRequestModel requestData, String password) async {
     _error = null;
     _status = AuthStatus.loading;
+    _resolvingManually = true;
     notifyListeners();
 
+    String? createdUid;
     try {
       final cred = await _auth.createUserWithEmailAndPassword(
         email: requestData.email.trim(),
         password: password.trim(),
       );
-
-      final uid = cred.user!.uid;
-
-      // Create volunteer request document (NOT the volunteer doc — that happens on approval)
-      await FirebaseService.volunteerRequests
-          .doc(uid)
-          .set(requestData.copyWithId(uid).toFirestore());
-
-      _request = requestData.copyWithId(uid);
-      _status = AuthStatus.pendingApproval;
-      notifyListeners();
-      return true;
+      createdUid = cred.user!.uid;
     } on FirebaseAuthException catch (e) {
+      debugPrint('[AuthProvider] FirebaseAuthException: ${e.code} — ${e.message}');
       _error = _authErrorMessage(e.code);
       _status = AuthStatus.unauthenticated;
+      _resolvingManually = false;
       notifyListeners();
       return false;
     } catch (e) {
-      _error = 'Registration failed. Please try again.';
-      _status = AuthStatus.unauthenticated;
-      notifyListeners();
-      return false;
+      debugPrint('[AuthProvider] createUser raw error: $e');
+      // firebase_auth v4.x Pigeon bug: user IS created but response codec
+      // throws a type cast error.  _auth.currentUser is already set.
+      final currentUser = _auth.currentUser;
+      if (currentUser != null && e.toString().contains('PigeonUserDetails')) {
+        debugPrint('[AuthProvider] Pigeon bug detected, recovering with currentUser uid=${currentUser.uid}');
+        createdUid = currentUser.uid;
+      } else {
+        _error = 'Registration failed. Please try again.';
+        _status = AuthStatus.unauthenticated;
+        _resolvingManually = false;
+        notifyListeners();
+        return false;
+      }
+    }
+
+    // Firebase Auth succeeded. Now write the volunteerRequest document.
+    debugPrint('[AuthProvider] Firebase Auth OK, uid=$createdUid. Writing Firestore doc...');
+    try {
+      await FirebaseService.volunteerRequests
+          .doc(createdUid)
+          .set(requestData.copyWithId(createdUid!).toFirestore());
+      debugPrint('[AuthProvider] volunteerRequest written successfully');
+    } catch (e) {
+      debugPrint('[AuthProvider] volunteerRequest Firestore write error: $e');
+      // Navigate to pending screen anyway and retry in background
+      _retryFirestoreWrite(createdUid!, requestData);
+    }
+
+    _request = requestData.copyWithId(createdUid!);
+    _status = AuthStatus.pendingApproval;
+    _resolvingManually = false;
+    notifyListeners();
+    return true;
+  }
+
+  /// Retries the Firestore volunteerRequest write after a failed registration.
+  Future<void> _retryFirestoreWrite(String uid, VolunteerRequestModel requestData) async {
+    // Wait a moment then retry
+    await Future.delayed(const Duration(seconds: 2));
+    try {
+      debugPrint('[AuthProvider] Retrying volunteerRequest write for $uid...');
+      await FirebaseService.volunteerRequests
+          .doc(uid)
+          .set(requestData.copyWithId(uid).toFirestore());
+      debugPrint('[AuthProvider] Retry volunteerRequest write succeeded');
+    } catch (e) {
+      debugPrint('[AuthProvider] Retry volunteerRequest write also failed: $e');
     }
   }
 

@@ -10,14 +10,23 @@ class ConnectivityHelper {
 
   /// Returns true if device currently has any network connectivity.
   static Future<bool> isOnline() async {
-    final result = await _connectivity.checkConnectivity();
-    return !result.contains(ConnectivityResult.none);
+    final dynamic result = await _connectivity.checkConnectivity();
+    if (result is List) {
+      return !result.contains(ConnectivityResult.none);
+    }
+    return result != ConnectivityResult.none;
   }
 
   /// Stream that emits true on connection, false on disconnection.
   static Stream<bool> get onConnectivityChanged {
     return _connectivity.onConnectivityChanged.map(
-      (results) => !results.contains(ConnectivityResult.none),
+      (results) {
+        final dynamic res = results;
+        if (res is List) {
+          return !res.contains(ConnectivityResult.none);
+        }
+        return res != ConnectivityResult.none;
+      },
     );
   }
 }

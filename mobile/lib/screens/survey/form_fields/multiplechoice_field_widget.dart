@@ -45,8 +45,11 @@ class _MultichoiceFieldWidgetState extends State<MultichoiceFieldWidget> {
                 style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary)),
             onChanged: (v) {
               setState(() {
-                if (v == true) _selected.add(opt);
-                else _selected.remove(opt);
+                if (v == true) {
+                  _selected.add(opt);
+                } else {
+                  _selected.remove(opt);
+                }
               });
               widget.onChanged(_selected.toList());
             },

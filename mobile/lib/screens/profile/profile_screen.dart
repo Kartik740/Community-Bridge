@@ -206,7 +206,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   Switch.adaptive(
                     value: volunteer.availability,
-                    activeColor: AppColors.success,
+                    activeThumbColor: AppColors.success,
+                    activeTrackColor: AppColors.success.withValues(alpha: 0.5),
                     onChanged: (v) =>
                         context.read<AuthProvider>().setAvailability(v),
                   ),

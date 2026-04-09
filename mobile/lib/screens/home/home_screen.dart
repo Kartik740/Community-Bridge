@@ -300,13 +300,13 @@ class _SurveyTabState extends State<_SurveyTab> {
 }
 
 class _RecentSurveyCard extends StatelessWidget {
-  final Map<String, dynamic> survey;
+  final SurveyModel survey;
 
   const _RecentSurveyCard({required this.survey});
 
   @override
   Widget build(BuildContext context) {
-    final model = SurveyModel.fromJson(survey);
+    final model = survey;
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(

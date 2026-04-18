@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "232110250660",
+    "project_id": "community-bridge-4a87d",
+    "storage_bucket": "community-bridge-4a87d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:232110250660:android:7a1f0afbe50fe5f020e431",
+        "android_client_info": {
+          "package_name": "com.example.community_bridge_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQaafqVpqwj3QSyjjtLVAazT4BuoBQ3qQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,14 @@
+Make changes in VS Code
+       ↓
+npm run build        (only if you changed the React web app)
+       ↓
+git add .
+git commit -m "what you changed"
+git push             (updates both GitHub and triggers Render auto-deploy)
+       ↓
+firebase deploy --only hosting    (only if you changed the React web app)
+
+github app link - https://github.com/Kartik740/Community-Bridge/releases/download/v1.0.0/app-release.apk
+firebase react app link - https://community-bridge-4a87d.web.app/
+render backend link - https://communitybridge-backend.onrender.com
+appetize.io link - https://appetize.io/app/b_2pbtuu4j5a3vudbtuhsvpnq3mm

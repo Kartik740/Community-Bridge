@@ -12,3 +12,16 @@ github app link - https://github.com/Kartik740/Community-Bridge/releases/downloa
 firebase react app link - https://community-bridge-4a87d.web.app/
 render backend link - https://communitybridge-backend.onrender.com
 appetize.io link - https://appetize.io/app/b_2pbtuu4j5a3vudbtuhsvpnq3mm
+
+To redeploy the app-
+
+Step 1 — Build new APK
+cd /d/CommunityBridge/mobile
+flutter build apk --release
+
+Step 2 — Update GitHub Release
+
+Go to your GitHub repo → Releases → click edit (pencil icon) on v1.0.0
+Delete the old app-release.apk
+Upload the new app-release.apk
+Click Update release

@@ -63,3 +63,5 @@ Thumbs.db
 # Project specific
 .cache/
 .parcel-cache/
+
+lib/firebase_options.dart

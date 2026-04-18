@@ -1,6 +1,8 @@
 // lib/core/services/location_service.dart
 // Handles GPS permission requests and location fetching.
 
+import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/foundation.dart';
 
@@ -8,7 +10,8 @@ class LocationService {
   LocationService._();
 
   /// Checks permission and returns current GPS position.
-  /// Returns null if permission denied or error occurs.
+  /// Falls back to last known position if high-accuracy times out.
+  /// Returns null only if permission is denied or location services are off.
   static Future<Position?> getCurrentPosition() async {
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -21,22 +24,36 @@ class LocationService {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          debugPrint('[LocationService] Location permission denied');
+          debugPrint('[LocationService] Location permission denied by user');
           return null;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        debugPrint('[LocationService] Location permission permanently denied');
+        debugPrint('[LocationService] Location permission permanently denied — open app settings');
         return null;
       }
 
-      return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
-      );
+      debugPrint('[LocationService] Requesting high-accuracy GPS fix...');
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 15),
+        );
+        debugPrint('[LocationService] Got fix: ${pos.latitude}, ${pos.longitude} (±${pos.accuracy.toStringAsFixed(0)}m)');
+        return pos;
+      } on TimeoutException catch (_) {
+        debugPrint('[LocationService] High-accuracy timed out — falling back to last known position');
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null) {
+          debugPrint('[LocationService] Using last known: ${last.latitude}, ${last.longitude}');
+        } else {
+          debugPrint('[LocationService] No last known position available');
+        }
+        return last;
+      }
     } catch (e) {
-      debugPrint('[LocationService] Error getting position: $e');
+      debugPrint('[LocationService] Unexpected error: $e');
       return null;
     }
   }

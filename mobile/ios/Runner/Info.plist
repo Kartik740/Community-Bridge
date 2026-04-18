@@ -2,6 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Location permission descriptions required by geolocator -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>CommunityBridge needs your location to tag survey responses with GPS coordinates for field data accuracy.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>CommunityBridge needs your location to tag survey responses with GPS coordinates for field data accuracy.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

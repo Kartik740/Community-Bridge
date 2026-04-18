@@ -8,7 +8,7 @@ const { messaging } = require('../config/firebase');
  * @param {string} body - Notification body
  * @returns {Promise<Object>} Response from FCM
  */
-const sendNotification = async (token, title, body) => {
+const sendNotification = async (token, title, body, data = {}) => {
   if (!token) {
     throw new Error('FCM token is missing');
   }
@@ -18,7 +18,24 @@ const sendNotification = async (token, title, body) => {
       title,
       body,
     },
-    token: token
+    // data payload is what the Flutter app reads for routing on notification tap.
+    // All values must be strings.
+    data: Object.fromEntries(
+      Object.entries(data).map(([k, v]) => [k, String(v)])
+    ),
+    android: {
+      notification: {
+        channelId: 'community_bridge_tasks',
+        priority: 'HIGH',
+        sound: 'default',
+      },
+    },
+    apns: {
+      payload: {
+        aps: { sound: 'default', badge: 1 },
+      },
+    },
+    token,
   };
 
   try {

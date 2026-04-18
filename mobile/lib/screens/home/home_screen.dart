@@ -1,21 +1,21 @@
-// lib/screens/home/home_screen.dart
-// Main shell with bottom navigation: Survey, Tasks, Profile.
-// Shows offline banner and sync status. Central survey code search.
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/constants/app_strings.dart';
+import '../../core/services/firebase_service.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/utils/connectivity_helper.dart';
 import '../../models/survey_model.dart';
+import '../../models/task_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/survey_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../widgets/offline_banner.dart';
 import '../../widgets/sync_status_card.dart';
 import '../survey/survey_form_screen.dart';
+import '../tasks/task_detail_screen.dart';
 import '../tasks/tasks_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -35,6 +35,39 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _initConnectivity();
     _initTasks();
+    _registerNotificationHandler();
+  }
+
+  /// Registers the notification tap callback so tapping a push notification
+  /// switches to the Tasks tab and opens the correct TaskDetailScreen.
+  void _registerNotificationHandler() {
+    NotificationService.onTaskNotificationTap = (String taskId) async {
+      // Switch to Tasks tab first
+      if (mounted) setState(() => _tabIndex = 1);
+
+      // Fetch the task from Firestore and push the detail screen
+      try {
+        final doc = await FirebaseService.tasks.doc(taskId).get();
+        if (!mounted) return;
+        if (doc.exists) {
+          final task = TaskModel.fromFirestore(doc);
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TaskDetailScreen(task: task),
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('[HomeScreen] Failed to open task from notification: $e');
+      }
+    };
+  }
+
+  @override
+  void dispose() {
+    // Clear the callback so it doesn't call into a disposed widget.
+    NotificationService.onTaskNotificationTap = null;
+    super.dispose();
   }
 
   void _initConnectivity() async {

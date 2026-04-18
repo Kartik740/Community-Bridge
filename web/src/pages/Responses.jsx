@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { Check, Clock, Edit3, X, ShieldCheck, ListChecks, ChevronLeft, FileText } from 'lucide-react';
+import { Check, Clock, Edit3, X, ShieldCheck, ListChecks, ChevronLeft, FileText, MapPin } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 const Responses = () => {
@@ -251,65 +251,110 @@ const Responses = () => {
 
       {/* Slide-over panel for review */}
       {selectedResponse && (
-        <div className="w-1/3 bg-white border-l shadow-2xl h-full flex flex-col fixed right-0 top-0 pt-16 z-20 overflow-hidden slide-in-from-right-full">
-           <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-              <h3 className="font-bold text-lg text-gray-900">Review Response</h3>
-              <button onClick={() => setSelectedResponse(null)} className="text-gray-400 hover:text-gray-900 transition-colors">
-                 <X className="w-6 h-6" />
-              </button>
-           </div>
-           
-           <div className="flex-grow overflow-y-auto p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded-xl">
-                 <div>
-                    <p className="text-gray-500 font-medium">Synced</p>
-                    <p className="font-bold text-gray-900">{selectedResponse.syncedAt?.toDate ? selectedResponse.syncedAt.toDate().toLocaleTimeString() : new Date(selectedResponse.syncedAt).toLocaleTimeString()}</p>
-                 </div>
-                 <div>
-                    <p className="text-gray-500 font-medium">Location</p>
-                    <p className="font-bold font-mono text-gray-900">
-                        {selectedResponse.location?.lat.toFixed(4)}, {selectedResponse.location?.lng.toFixed(4)}
-                    </p>
-                 </div>
-              </div>
+        <>
+          {/* Backdrop overlay */}
+          <div 
+            className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-10 transition-opacity animate-fade-in" 
+            onClick={() => setSelectedResponse(null)}
+          ></div>
+          
+          {/* Panel */}
+          <div className="w-full max-w-md bg-white border-l border-white shadow-[0_0_40px_rgba(0,0,0,0.1)] h-full flex flex-col fixed right-0 top-0 pt-[72px] z-20 overflow-hidden animate-fade-in-up">
+             
+             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
+                <div className="flex items-center space-x-3">
+                   <div className="w-10 h-10 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-600 shadow-inner">
+                     <FileText className="w-5 h-5" />
+                   </div>
+                   <div>
+                     <h3 className="font-black text-xl text-gray-900 tracking-tight">Review Response</h3>
+                     <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mt-1">ID: {selectedResponse.id.substring(0,10)}</p>
+                   </div>
+                </div>
+                <button onClick={() => setSelectedResponse(null)} className="text-gray-400 hover:text-red-500 bg-gray-50 hover:bg-red-50 p-2.5 rounded-xl transition-all">
+                   <X className="w-5 h-5" />
+                </button>
+             </div>
+             
+             <div className="flex-grow overflow-y-auto bg-slate-50/80 p-6 space-y-8 custom-scrollbar">
+                
+                {/* Meta Info */}
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center">
+                      <div className="flex items-center text-gray-400 mb-1 space-x-1.5">
+                         <Clock className="w-4 h-4" />
+                         <p className="text-xs font-bold uppercase tracking-wider">Synced At</p>
+                      </div>
+                      <p className="font-black text-gray-900 text-lg">
+                        {selectedResponse.syncedAt?.toDate ? selectedResponse.syncedAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date(selectedResponse.syncedAt || selectedResponse.submittedAt || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </p>
+                   </div>
+                   <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center">
+                      <div className="flex items-center text-gray-400 mb-1 space-x-1.5">
+                         <MapPin className="w-4 h-4" />
+                         <p className="text-xs font-bold uppercase tracking-wider">Location</p>
+                      </div>
+                      <p className="font-bold font-mono text-primary-600 text-[15px]">
+                          {selectedResponse.location?.lat ? selectedResponse.location.lat.toFixed(4) : 'N/A'}, {selectedResponse.location?.lng ? selectedResponse.location.lng.toFixed(4) : ''}
+                      </p>
+                   </div>
+                </div>
 
-              <div>
-                 <h4 className="font-bold text-gray-900 mb-4 border-b pb-2">Submitted Answers</h4>
-                 <div className="space-y-4">
-                    {selectedResponse.answers?.map((ans, idx) => (
-                       <div key={idx} className="bg-white border p-3 rounded-xl shadow-sm">
-                          <p className="text-xs font-bold text-primary-600 uppercase mb-1 flex items-center">
-                             Field ID: {ans.fieldId}
-                          </p>
-                          <input 
-                             className="w-full mt-1 p-2 border rounded text-gray-900 focus:border-primary-500 outline-none transition-colors"
-                             value={Array.isArray(ans.value) ? ans.value.join(', ') : ans.value}
-                             onChange={(e) => handleAnswerEdit(ans.fieldId, e.target.value)}
-                             disabled={selectedResponse.status !== 'pending'}
-                          />
-                       </div>
-                    ))}
-                 </div>
-              </div>
-           </div>
-           
-           <div className="p-6 border-t bg-gray-50">
-              {selectedResponse.status === 'pending' ? (
-                  <button 
-                    onClick={() => handleApprove(selectedResponse.id)}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-sm flex justify-center items-center transition-colors"
-                  >
-                     <ShieldCheck className="w-5 h-5 mr-2" />
-                     Save & Approve
-                  </button>
-              ) : (
-                  <div className="w-full bg-gray-200 text-gray-600 font-bold py-3 rounded-xl text-center flex justify-center items-center">
-                     <Check className="w-5 h-5 mr-2" />
-                     Already {selectedResponse.status}
-                  </div>
-              )}
-           </div>
-        </div>
+                {/* Answers Section */}
+                <div>
+                   <h4 className="font-black text-gray-900 mb-5 flex items-center text-lg">
+                      <ListChecks className="w-5 h-5 mr-2 text-primary-500" />
+                      Submitted Answers
+                   </h4>
+                   <div className="space-y-5">
+                      {selectedResponse.answers?.map((ans, idx) => {
+                         // Attempt to find the human-readable label from the active survey's fields
+                         const fieldDef = activeSurvey?.fields?.find(f => f.id === ans.fieldId);
+                         const questionLabel = fieldDef ? fieldDef.label : `Field ID: ${ans.fieldId}`;
+                         
+                         return (
+                           <div key={idx} className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 group hover:border-primary-200 transition-colors">
+                              <label className="block text-sm font-bold text-gray-800 mb-3 leading-snug">
+                                 {questionLabel}
+                              </label>
+                              <div className="relative">
+                                <input 
+                                   className="w-full bg-gray-50 p-3.5 rounded-xl text-gray-900 border-2 border-transparent focus:border-primary-500 focus:bg-white outline-none transition-all font-medium disabled:opacity-75 disabled:cursor-not-allowed"
+                                   value={Array.isArray(ans.value) ? ans.value.join(', ') : ans.value}
+                                   onChange={(e) => handleAnswerEdit(ans.fieldId, e.target.value)}
+                                   disabled={selectedResponse.status !== 'pending'}
+                                   placeholder="No answer provided"
+                                />
+                                {selectedResponse.status === 'pending' && (
+                                   <Edit3 className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
+                              </div>
+                           </div>
+                         );
+                      })}
+                   </div>
+                </div>
+             </div>
+             
+             {/* Action Banner Bottom */}
+             <div className="p-6 border-t border-gray-100 bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+                {selectedResponse.status === 'pending' ? (
+                    <button 
+                      onClick={() => handleApprove(selectedResponse.id)}
+                      className="w-full btn-premium py-4 rounded-2xl flex justify-center items-center text-lg shadow-primary-600/30 ring-4 ring-primary-50"
+                    >
+                       <ShieldCheck className="w-6 h-6 mr-2" />
+                       Save & Approve Response
+                    </button>
+                ) : (
+                    <div className="w-full bg-slate-50 border-2 border-slate-100 text-slate-500 font-bold py-4 rounded-2xl text-center flex justify-center items-center">
+                       <Check className="w-5 h-5 mr-2 text-green-500" />
+                       Response is {selectedResponse.status.charAt(0).toUpperCase() + selectedResponse.status.slice(1)}
+                    </div>
+                )}
+             </div>
+          </div>
+        </>
       )}
     </div>
   );

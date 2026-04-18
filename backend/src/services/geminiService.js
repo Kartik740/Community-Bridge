@@ -37,11 +37,11 @@ Task data: ${JSON.stringify(task)}
  */
 const analyseResponses = async (responses) => {
   try {
-    // The client gets the API key from the environment variable GEMINI_API_KEY.
-    const ai = new GoogleGenAI({});
+    // Explicitly pass the API key from the environment
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: URGENCY_ANALYSIS_PROMPT(responses),
     });
     

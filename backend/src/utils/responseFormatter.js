@@ -10,8 +10,8 @@ const formatResponses = (docs) => {
     return {
       id: doc.id,
       ...data,
-      submittedAt: data.submittedAt ? data.submittedAt.toDate() : null,
-      syncedAt: data.syncedAt ? data.syncedAt.toDate() : null
+      submittedAt: data.submittedAt ? (typeof data.submittedAt.toDate === 'function' ? data.submittedAt.toDate() : data.submittedAt) : null,
+      syncedAt: data.syncedAt ? (typeof data.syncedAt.toDate === 'function' ? data.syncedAt.toDate() : data.syncedAt) : null
     };
   });
 };

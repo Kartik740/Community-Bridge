@@ -18,8 +18,33 @@ class NotificationService {
   static final _messaging = FirebaseMessaging.instance;
   static final _localNotifications = FlutterLocalNotificationsPlugin();
 
-  // Navigation callback — set by the app to handle notification taps.
-  static void Function(String taskId)? onTaskNotificationTap;
+  // ─── Navigation callback ─────────────────────────────────────────────────
+  // Set by HomeScreen. Using a custom setter so we can replay any pending
+  // taskId that arrived before HomeScreen had a chance to mount.
+
+  static void Function(String taskId)? _onTaskNotificationTap;
+
+  static void Function(String taskId)? get onTaskNotificationTap =>
+      _onTaskNotificationTap;
+
+  // ignore: use_setters_to_change_properties
+  static set onTaskNotificationTap(void Function(String taskId)? cb) {
+    _onTaskNotificationTap = cb;
+    // If a notification tap arrived before HomeScreen registered the callback,
+    // replay it now (delayed one microtask so the widget tree is fully built).
+    if (cb != null && _pendingTaskId != null) {
+      final pending = _pendingTaskId!;
+      _pendingTaskId = null;
+      debugPrint('[FCM] Replaying pending notification for taskId: $pending');
+      Future.microtask(() => cb(pending));
+    }
+  }
+
+  /// Stores a taskId that arrived while [onTaskNotificationTap] was null
+  /// (e.g. app cold-started from a notification before HomeScreen mounts).
+  static String? _pendingTaskId;
+
+  // ─── Init ─────────────────────────────────────────────────────────────────
 
   /// Initialises notifications — call this after Firebase.initializeApp().
   static Future<void> init() async {
@@ -56,16 +81,22 @@ class NotificationService {
     // Register background handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    // Foreground messages
+    // Foreground messages — show a local notification banner
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
     // Notification tap when app is in background (but not terminated)
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
 
-    // Check if app was opened from a terminated state via notification
+    // App cold-started by tapping a notification (terminated state).
+    // HomeScreen hasn't mounted yet so we park the taskId in _pendingTaskId;
+    // it will be replayed as soon as HomeScreen registers its callback.
     final initial = await _messaging.getInitialMessage();
     if (initial != null) {
-      _routeFromMessage(initial);
+      final taskId = initial.data['taskId'] as String?;
+      if (taskId != null && taskId.isNotEmpty) {
+        _pendingTaskId = taskId;
+        debugPrint('[FCM] Cold-started from notification, pending taskId: $taskId');
+      }
     }
   }
 
@@ -85,7 +116,7 @@ class NotificationService {
     }
   }
 
-  // ─── Private Handlers ──────────────────────────────────────────────────────
+  // ─── Private Handlers ─────────────────────────────────────────────────────
 
   static void _handleForegroundMessage(RemoteMessage message) {
     final notification = message.notification;
@@ -95,8 +126,8 @@ class NotificationService {
       notification.hashCode,
       notification.title,
       notification.body,
-      NotificationDetails(
-        android: const AndroidNotificationDetails(
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
           'community_bridge_tasks',
           'Task Notifications',
           channelDescription: 'Notifications for new task assignments',
@@ -104,8 +135,9 @@ class NotificationService {
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
         ),
-        iOS: const DarwinNotificationDetails(),
+        iOS: DarwinNotificationDetails(),
       ),
+      // payload carries the taskId so local-notification taps also route correctly.
       payload: message.data['taskId'],
     );
   }
@@ -116,15 +148,22 @@ class NotificationService {
 
   static void _onNotificationTap(NotificationResponse response) {
     final taskId = response.payload;
-    if (taskId != null && taskId.isNotEmpty && onTaskNotificationTap != null) {
-      onTaskNotificationTap!(taskId);
+    if (taskId == null || taskId.isEmpty) return;
+    if (_onTaskNotificationTap != null) {
+      _onTaskNotificationTap!(taskId);
+    } else {
+      // Callback not yet registered — park for replay.
+      _pendingTaskId = taskId;
     }
   }
 
   static void _routeFromMessage(RemoteMessage message) {
     final taskId = message.data['taskId'] as String?;
-    if (taskId != null && taskId.isNotEmpty && onTaskNotificationTap != null) {
-      onTaskNotificationTap!(taskId);
+    if (taskId == null || taskId.isEmpty) return;
+    if (_onTaskNotificationTap != null) {
+      _onTaskNotificationTap!(taskId);
+    } else {
+      _pendingTaskId = taskId;
     }
   }
 }

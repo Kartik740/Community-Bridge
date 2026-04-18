@@ -25,7 +25,22 @@ exports.notifyVolunteer = async (req, res) => {
     const title = `Urgent Request: ${task.title || task.category.toUpperCase()}`;
     const body = `You have been matched for a critical task in ${task.areaName}. Tap to view details.`;
 
-    await sendNotification(volunteer.fcmToken, title, body);
+    // ── BUG FIX 1: write assignedVolunteerId + status to the task document ──
+    // The mobile TaskProvider queries tasks by 'assignedVolunteerId'.
+    // Without this update the task never appears in the volunteer's Tasks tab.
+    await db.collection('tasks').doc(taskId).update({
+      assignedVolunteerId: volunteerId,
+      status: 'assigned',
+      assignedAt: new Date(),
+    });
+
+    // ── BUG FIX 2: pass taskId in FCM data payload ──
+    // The Flutter app reads message.data['taskId'] to navigate on notification tap.
+    await sendNotification(volunteer.fcmToken, title, body, {
+      taskId,
+      volunteerId,
+      type: 'task_assigned',
+    });
 
     // Save Alert to DB
     const alertRef = db.collection('alerts').doc();

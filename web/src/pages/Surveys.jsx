@@ -3,8 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { Link } from 'react-router-dom';
-import { Plus, CheckCircle, FileText } from 'lucide-react';
+import { Plus, CheckCircle, FileText, Trash2 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import toast, { Toaster } from 'react-hot-toast';
 
 const Surveys = () => {
   const { userProfile } = useAuth();
@@ -25,6 +26,28 @@ const Surveys = () => {
     };
     if (userProfile?.id) fetchSurveys();
   }, [userProfile]);
+
+  const handleDelete = async (e, survey) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm(`Are you sure you want to completely delete "${survey.title}"? This will permanently erase the survey, ALL of its responses, and associated tasks. This action cannot be undone.`)) return;
+    
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/surveys/delete`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ surveyId: survey.id, orgId: userProfile.id })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      setSurveys(surveys.filter(s => s.id !== survey.id));
+      toast.success('Survey successfully deleted.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete survey.');
+    }
+  };
 
   if (loading) return <LoadingSpinner message="Loading surveys..." />;
 
@@ -63,11 +86,20 @@ const Surveys = () => {
                  <div className="bg-primary-50/50 group-hover:bg-primary-50 text-primary-700 font-mono px-3.5 py-1.5 rounded-xl text-[11px] font-bold tracking-widest uppercase shadow-sm border border-primary-100/50 transition-colors">
                    {survey.surveyCode}
                  </div>
-                 {survey.isActive && (
-                   <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 border border-emerald-100 shadow-sm">
-                      <CheckCircle className="w-4 h-4" />
-                   </div>
-                 )}
+                 <div className="flex space-x-2">
+                   {survey.isActive && (
+                     <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 border border-emerald-100 shadow-sm">
+                        <CheckCircle className="w-4 h-4" />
+                     </div>
+                   )}
+                   <button 
+                     onClick={(e) => handleDelete(e, survey)}
+                     className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 border border-red-100 shadow-sm hover:bg-red-500 hover:text-white transition-colors"
+                     title="Delete Survey"
+                   >
+                     <Trash2 className="w-4 h-4" />
+                   </button>
+                 </div>
               </div>
               
               <h3 className="font-bold text-xl text-gray-900 mb-3 group-hover:text-primary-600 transition-colors leading-tight">{survey.title}</h3>

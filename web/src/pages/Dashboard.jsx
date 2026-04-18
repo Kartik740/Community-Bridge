@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -12,6 +13,7 @@ import { FileSpreadsheet, ListChecks, Users, LayoutList, Bot, MapPin, ArrowRight
 
 const Dashboard = () => {
   const { userProfile } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [heatmapData, setHeatmapData] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -190,7 +192,10 @@ const Dashboard = () => {
                         <p className="text-[12px] text-primary-700 font-bold bg-primary-100/50 border border-primary-100 px-2.5 py-1 rounded-md tracking-wide">
                            {task.numberOfPeopleAffected} AFFECTED
                         </p>
-                        <button className="text-[12px] font-bold text-indigo-400 group-hover:text-indigo-600 transition-colors flex items-center uppercase tracking-wider">
+                        <button 
+                           onClick={() => navigate(`/tasks#task-${task.id}`)}
+                           className="text-[12px] font-bold text-indigo-400 group-hover:text-indigo-600 transition-colors flex items-center uppercase tracking-wider"
+                        >
                            Action <ArrowRight className="w-3.5 h-3.5 ml-1 transform group-hover:translate-x-1 transition-transform" />
                         </button>
                      </div>

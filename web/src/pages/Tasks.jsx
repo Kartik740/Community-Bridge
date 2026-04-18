@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -13,10 +14,24 @@ const Tasks = () => {
   const [loading, setLoading] = useState(true);
   const [notifying, setNotifying] = useState(null);
   const [manualAssignment, setManualAssignment] = useState({});
+  const location = useLocation();
 
   useEffect(() => {
     fetchTasksAndVols();
   }, [userProfile]);
+
+  useEffect(() => {
+    if (!loading && tasks.length > 0 && location.hash) {
+       setTimeout(() => {
+          const el = document.getElementById(location.hash.slice(1));
+          if (el) {
+             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+             el.classList.add('ring-4', 'ring-offset-8', 'ring-primary-400');
+             setTimeout(() => el.classList.remove('ring-4', 'ring-offset-8', 'ring-primary-400'), 2000);
+          }
+       }, 300);
+    }
+  }, [loading, tasks, location.hash]);
 
   const fetchTasksAndVols = async () => {
     if (!userProfile?.id) return;
@@ -88,7 +103,7 @@ const Tasks = () => {
                 No active tasks found. Run the AI Analysis from the dashboard.
              </div>
          ) : tasks.map(task => (
-            <div key={task.id} className="glass-panel rounded-3xl overflow-hidden flex flex-col hover:shadow-xl transition-shadow duration-300">
+            <div key={task.id} id={`task-${task.id}`} className="glass-panel rounded-3xl overflow-hidden flex flex-col hover:shadow-xl transition-all duration-500">
                <div className="p-8 border-b border-white/50 bg-gradient-to-br from-white to-slate-50 flex justify-between items-start">
                   <div>
                      <h3 className="text-2xl font-display font-black text-slate-900 mb-2 truncate pr-4 drop-shadow-sm">

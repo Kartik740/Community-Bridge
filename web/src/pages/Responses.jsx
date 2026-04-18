@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { Check, Clock, Edit3, X, ShieldCheck, ListChecks, ChevronLeft, FileText, MapPin } from 'lucide-react';
+import { Check, Clock, Edit3, X, ShieldCheck, ListChecks, ChevronLeft, FileText, MapPin, Trash2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 const Responses = () => {
@@ -83,6 +83,59 @@ const Responses = () => {
       toast.success(`Bulk approved ${selectedIds.length} responses!`);
     } catch (err) {
       toast.error('Error in bulk approval');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this response? This will also remove any AI-generated tasks based on this location.')) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/responses/delete`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ ids: [id], orgId: userProfile.id })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      toast.success(data.message);
+      
+      const newResponses = responses.filter(r => r.id !== id);
+      setResponses(newResponses);
+
+      if (selectedResponse && selectedResponse.id === id) {
+          setSelectedResponse(null);
+      }
+      setSelectedIds(prev => prev.filter(x => x !== id));
+    } catch (err) {
+      console.error(err);
+      toast.error('Error deleting response');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} responses? This will also remove associated AI-generated tasks.`)) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/responses/delete`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ ids: selectedIds, orgId: userProfile.id })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      toast.success(data.message);
+      
+      const newResponses = responses.filter(r => !selectedIds.includes(r.id));
+      setResponses(newResponses);
+      
+      if (selectedResponse && selectedIds.includes(selectedResponse.id)) {
+          setSelectedResponse(null);
+      }
+      setSelectedIds([]);
+    } catch (err) {
+      console.error(err);
+      toast.error('Error in bulk deletion');
     }
   };
 
@@ -175,13 +228,22 @@ const Responses = () => {
                 </div>
                 <div className="flex items-center space-x-4">
                    {selectedIds.length > 0 && (
-                      <button 
-                         onClick={handleBulkApprove}
-                         className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
-                      >
-                         <ListChecks className="w-4 h-4 mr-2" />
-                         Approve Selected ({selectedIds.length})
-                      </button>
+                      <div className="flex space-x-2">
+                         <button 
+                            onClick={handleBulkApprove}
+                            className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                         >
+                            <ListChecks className="w-4 h-4 mr-2" />
+                            Approve ({selectedIds.length})
+                         </button>
+                         <button 
+                            onClick={handleBulkDelete}
+                            className="flex items-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                         >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete ({selectedIds.length})
+                         </button>
+                      </div>
                    )}
                    <div className="flex space-x-2 bg-white rounded-xl p-1 shadow-sm border border-gray-100 mt-2">
                       {['All', 'Pending', 'Approved', 'Analysed'].map(f => (
@@ -245,8 +307,11 @@ const Responses = () => {
                     <td className="px-6 py-4 font-medium max-w-[150px] truncate">{r.volunteerId}</td>
                     <td className="px-6 py-4">{r.submittedAt?.toDate ? r.submittedAt.toDate().toLocaleDateString() : new Date(r.submittedAt).toLocaleDateString()}</td>
                     <td className="px-6 py-4 text-right">
-                       <button onClick={(e) => { e.stopPropagation(); setSelectedResponse(r); }} className="text-primary-600 hover:bg-primary-100 p-2 rounded-lg transition-colors">
+                       <button onClick={(e) => { e.stopPropagation(); setSelectedResponse(r); }} className="text-primary-600 hover:bg-primary-100 p-2 rounded-lg transition-colors mr-1">
                           <Edit3 className="w-4 h-4" />
+                       </button>
+                       <button onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors" title="Delete">
+                          <Trash2 className="w-4 h-4" />
                        </button>
                     </td>
                   </tr>
@@ -387,21 +452,28 @@ const Responses = () => {
              </div>
              
              {/* Action Banner Bottom */}
-             <div className="p-5 border-t border-slate-100 bg-white shadow-[0_-20px_40px_rgba(0,0,0,0.03)] z-10 shrink-0 relative">
+             <div className="p-5 border-t border-slate-100 bg-white shadow-[0_-20px_40px_rgba(0,0,0,0.03)] z-10 shrink-0 relative flex gap-3">
                 {selectedResponse.status === 'pending' ? (
                     <button 
                       onClick={() => handleApprove(selectedResponse.id)}
-                      className="w-full bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-500 hover:to-indigo-500 text-white font-bold py-4 rounded-2xl flex justify-center items-center text-lg shadow-xl shadow-primary-600/30 ring-4 ring-primary-50 hover:ring-primary-100 transition-all transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+                      className="flex-1 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-500 hover:to-indigo-500 text-white font-bold py-4 rounded-2xl flex justify-center items-center text-lg shadow-xl shadow-primary-600/30 ring-4 ring-primary-50 hover:ring-primary-100 transition-all transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
                     >
                        <ShieldCheck className="w-6 h-6 mr-2.5" />
-                       Save & Approve Response
+                       Save & Approve
                     </button>
                 ) : (
-                    <div className="w-full bg-emerald-50 border-2 border-emerald-100 text-emerald-600 font-bold py-4 rounded-2xl text-center flex justify-center items-center text-[15px] shadow-sm">
+                    <div className="flex-1 bg-emerald-50 border-2 border-emerald-100 text-emerald-600 font-bold py-4 rounded-2xl text-center flex justify-center items-center text-[15px] shadow-sm">
                        <Check className="w-5 h-5 mr-2" />
                        Response is {selectedResponse.status.charAt(0).toUpperCase() + selectedResponse.status.slice(1)}
                     </div>
                 )}
+                <button 
+                  onClick={() => handleDelete(selectedResponse.id)}
+                  className="px-6 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl border-2 border-red-100 hover:border-red-200 transition-colors flex items-center justify-center"
+                  title="Delete Response"
+                >
+                   <Trash2 className="w-6 h-6" />
+                </button>
              </div>
           </div>
           </div>

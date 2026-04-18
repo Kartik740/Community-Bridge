@@ -15,6 +15,8 @@ app.use(bodyParser.json());
 app.use('/api/analyse', require('./routes/analysis'));
 app.use('/api/match', require('./routes/matching'));
 app.use('/api/notify', require('./routes/notifications'));
+app.use('/api/responses', require('./routes/responses'));
+app.use('/api/surveys', require('./routes/surveys'));
 
 // Load Cron Jobs
 require('./jobs/scheduledAnalysis');

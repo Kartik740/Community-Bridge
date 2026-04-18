@@ -1,5 +1,6 @@
 // lib/screens/survey/form_fields/photo_field_widget.dart
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,7 +30,13 @@ class _PhotoFieldWidgetState extends State<PhotoFieldWidget> {
     );
     if (img != null) {
       setState(() => _photo = File(img.path));
-      widget.onChanged(img.path);
+      try {
+        final bytes = await img.readAsBytes();
+        final base64String = 'data:image/jpeg;base64,' + base64Encode(bytes);
+        widget.onChanged(base64String);
+      } catch (e) {
+        widget.onChanged(img.path); // Fallback if encoding fails
+      }
     }
   }
 

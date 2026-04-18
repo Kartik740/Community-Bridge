@@ -102,7 +102,7 @@ class FirebaseService {
   static Stream<QuerySnapshot> streamTasks(String volunteerId) {
     return tasks
         .where('assignedVolunteerId', isEqualTo: volunteerId)
-        .orderBy('urgencyScore', descending: true)
+        // Sort locally in TaskProvider to avoid requiring a composite index
         .snapshots();
   }
 

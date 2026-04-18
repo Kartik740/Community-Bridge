@@ -55,17 +55,29 @@ const Surveys = () => {
            </div>
         ) : (
           surveys.map(survey => (
-            <div key={survey.id} className="glass p-6 rounded-2xl hover:border-primary-300 transition-colors cursor-pointer block">
-              <div className="flex justify-between items-start mb-4">
-                 <div className="bg-primary-50 text-primary-700 font-mono px-3 py-1 rounded-lg font-bold tracking-wider">
+            <div key={survey.id} className="bg-white rounded-3xl p-6 border border-gray-100/80 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_36px_-6px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col group relative overflow-hidden backdrop-blur-xl">
+               {/* Top accent line */}
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              <div className="flex justify-between items-start mb-5">
+                 <div className="bg-primary-50/50 group-hover:bg-primary-50 text-primary-700 font-mono px-3.5 py-1.5 rounded-xl text-[11px] font-bold tracking-widest uppercase shadow-sm border border-primary-100/50 transition-colors">
                    {survey.surveyCode}
                  </div>
-                 {survey.isActive && <CheckCircle className="w-5 h-5 text-green-500" />}
+                 {survey.isActive && (
+                   <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 border border-emerald-100 shadow-sm">
+                      <CheckCircle className="w-4 h-4" />
+                   </div>
+                 )}
               </div>
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{survey.title}</h3>
-              <p className="text-sm text-gray-500 mb-4 line-clamp-2">{survey.description}</p>
-              <div className="pt-4 border-t flex justify-between text-sm text-gray-500 font-medium">
-                 <span>{survey.fields?.length || 0} fields</span>
+              
+              <h3 className="font-bold text-xl text-gray-900 mb-3 group-hover:text-primary-600 transition-colors leading-tight">{survey.title}</h3>
+              <p className="text-sm text-gray-500 mb-6 line-clamp-2 leading-relaxed flex-grow">{survey.description}</p>
+              
+              <div className="mt-auto pt-4 border-t border-gray-100/80 flex justify-between items-center text-sm font-medium">
+                 <div className="flex items-center text-gray-500">
+                    <FileText className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary-500 transition-colors" />
+                    <span>{survey.fields?.length || 0} Fields Configured</span>
+                 </div>
               </div>
             </div>
           ))

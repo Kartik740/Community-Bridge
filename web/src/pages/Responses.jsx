@@ -131,21 +131,30 @@ const Responses = () => {
                  const respCount = responses.filter(r => r.surveyId === survey.surveyCode || r.surveyId === survey.id).length;
                  const pendingCount = responses.filter(r => (r.surveyId === survey.surveyCode || r.surveyId === survey.id) && r.status === 'pending').length;
                  return (
-                   <div key={survey.id} onClick={() => setActiveSurvey(survey)} className="glass p-6 rounded-2xl hover:border-primary-300 transition-all cursor-pointer shadow-sm hover:shadow-md block">
-                      <div className="flex justify-between items-start mb-4">
-                         <div className="bg-primary-50 text-primary-700 font-mono px-3 py-1 rounded-lg font-bold tracking-wider text-sm">
+                   <div key={survey.id} onClick={() => setActiveSurvey(survey)} className="bg-white rounded-3xl p-6 border border-gray-100/80 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_36px_-6px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col group relative overflow-hidden backdrop-blur-xl">
+                      {/* Top accent line */}
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      
+                      <div className="flex justify-between items-start mb-5">
+                         <div className="bg-primary-50/50 group-hover:bg-primary-50 text-primary-700 font-mono px-3.5 py-1.5 rounded-xl text-[11px] font-bold tracking-widest uppercase shadow-sm border border-primary-100/50 transition-colors">
                            {survey.surveyCode}
                          </div>
                          {pendingCount > 0 && (
-                            <span className="bg-orange-100 text-orange-800 text-xs font-bold px-2 py-1 rounded-full">
+                            <span className="flex items-center bg-orange-50 text-orange-600 text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-xl border border-orange-200/60 shadow-sm animate-pulse">
+                               <Clock className="w-3 h-3 mr-1.5" />
                                {pendingCount} Pending
                             </span>
                          )}
                       </div>
-                      <h3 className="font-bold text-lg text-gray-900 mb-2 truncate">{survey.title}</h3>
-                      <p className="text-sm text-gray-500 mb-4 line-clamp-2 min-h-[40px]">{survey.description}</p>
-                      <div className="pt-4 border-t flex justify-between text-sm text-gray-500 font-medium">
-                         <span>{respCount} Total Responses</span>
+                      
+                      <h3 className="font-bold text-xl text-gray-900 mb-3 truncate group-hover:text-primary-600 transition-colors">{survey.title}</h3>
+                      <p className="text-sm text-gray-500 mb-6 line-clamp-2 min-h-[40px] leading-relaxed flex-grow">{survey.description}</p>
+                      
+                      <div className="mt-auto pt-4 border-t border-gray-100/80 flex justify-between items-center text-sm font-medium">
+                         <div className="flex items-center text-gray-500">
+                             <ListChecks className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary-500 transition-colors" />
+                             <span>{respCount} Total Responses</span>
+                         </div>
                       </div>
                    </div>
                  );
@@ -254,80 +263,121 @@ const Responses = () => {
         <>
           {/* Backdrop overlay */}
           <div 
-            className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-10 transition-opacity animate-fade-in" 
+            className="fixed inset-0 bg-slate-900/50 z-[100] transition-opacity animate-fade-in flex items-center justify-center p-4 sm:p-6" 
             onClick={() => setSelectedResponse(null)}
-          ></div>
-          
-          {/* Panel */}
-          <div className="w-full max-w-md bg-white border-l border-white shadow-[0_0_40px_rgba(0,0,0,0.1)] h-full flex flex-col fixed right-0 top-0 pt-[72px] z-20 overflow-hidden animate-fade-in-up">
+          >
+            {/* Modal Container */}
+            <div 
+              className="w-full max-w-lg bg-white rounded-[1.5rem] shadow-[0_20px_80px_-10px_rgba(0,0,0,0.3)] ring-1 ring-slate-900/10 flex flex-col max-h-[85vh] overflow-hidden animate-fade-in-up relative"
+              onClick={e => e.stopPropagation()}
+            >
              
-             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                <div className="flex items-center space-x-3">
-                   <div className="w-10 h-10 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-600 shadow-inner">
-                     <FileText className="w-5 h-5" />
+             <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-white relative overflow-hidden shrink-0">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary-100/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                <div className="flex items-start space-x-4 relative z-10">
+                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-50 to-indigo-50 flex items-center justify-center text-primary-600 shadow-[inset_0_2px_10px_rgba(255,255,255,1)] ring-1 ring-primary-100">
+                     <FileText className="w-6 h-6" />
                    </div>
                    <div>
-                     <h3 className="font-black text-xl text-gray-900 tracking-tight">Review Response</h3>
-                     <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mt-1">ID: {selectedResponse.id.substring(0,10)}</p>
+                     <h3 className="font-black text-2xl text-slate-900 tracking-tight">Review Response</h3>
+                     <div className="flex items-center mt-2 space-x-2">
+                        <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase bg-slate-100/80 px-2.5 py-1 rounded-md">ID: {selectedResponse.id.substring(0,10)}</span>
+                        {selectedResponse.status === 'pending' ? (
+                          <span className="flex items-center text-[10px] font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-md tracking-wider uppercase border border-orange-100"><Clock className="w-3 h-3 mr-1" /> Pending</span>
+                        ) : (
+                          <span className="flex items-center text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md tracking-wider uppercase border border-emerald-100"><Check className="w-3 h-3 mr-1" /> {selectedResponse.status}</span>
+                        )}
+                     </div>
                    </div>
                 </div>
-                <button onClick={() => setSelectedResponse(null)} className="text-gray-400 hover:text-red-500 bg-gray-50 hover:bg-red-50 p-2.5 rounded-xl transition-all">
-                   <X className="w-5 h-5" />
+                <button onClick={() => setSelectedResponse(null)} className="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-50 border border-slate-100 p-2.5 rounded-xl transition-all shadow-sm relative z-10 group">
+                   <X className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </button>
              </div>
              
-             <div className="flex-grow overflow-y-auto bg-slate-50/80 p-6 space-y-8 custom-scrollbar">
+             <div className="flex-grow overflow-y-auto bg-slate-50/50 p-6 space-y-6 custom-scrollbar">
                 
                 {/* Meta Info */}
                 <div className="grid grid-cols-2 gap-4">
-                   <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center">
-                      <div className="flex items-center text-gray-400 mb-1 space-x-1.5">
-                         <Clock className="w-4 h-4" />
-                         <p className="text-xs font-bold uppercase tracking-wider">Synced At</p>
+                   <div className="bg-white p-4 rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col justify-center relative overflow-hidden group">
+                      <div className="absolute right-[-10px] bottom-[-10px] opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
+                         <Clock className="w-24 h-24 text-slate-900" />
                       </div>
-                      <p className="font-black text-gray-900 text-lg">
+                      <div className="flex items-center text-slate-400 mb-3 space-x-2.5">
+                         <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100 shadow-sm">
+                            <Clock className="w-3.5 h-3.5 text-slate-500" />
+                         </div>
+                         <p className="text-[11px] font-bold uppercase tracking-widest">Synced At</p>
+                      </div>
+                      <p className="font-black text-slate-800 text-2xl tracking-tight">
                         {selectedResponse.syncedAt?.toDate ? selectedResponse.syncedAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date(selectedResponse.syncedAt || selectedResponse.submittedAt || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </p>
                    </div>
-                   <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center">
-                      <div className="flex items-center text-gray-400 mb-1 space-x-1.5">
-                         <MapPin className="w-4 h-4" />
-                         <p className="text-xs font-bold uppercase tracking-wider">Location</p>
+                   <div className="bg-white p-4 rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col justify-center relative overflow-hidden group">
+                      <div className="absolute right-[-10px] bottom-[-10px] opacity-[0.02] group-hover:opacity-[0.04] transition-opacity">
+                         <MapPin className="w-24 h-24 text-primary-900" />
                       </div>
-                      <p className="font-bold font-mono text-primary-600 text-[15px]">
-                          {selectedResponse.location?.lat ? selectedResponse.location.lat.toFixed(4) : 'N/A'}, {selectedResponse.location?.lng ? selectedResponse.location.lng.toFixed(4) : ''}
+                      <div className="flex items-center text-slate-400 mb-3 space-x-2.5">
+                         <div className="w-7 h-7 rounded-lg bg-primary-50 flex items-center justify-center border border-primary-100 shadow-sm">
+                            <MapPin className="w-3.5 h-3.5 text-primary-600" />
+                         </div>
+                         <p className="text-[11px] font-bold uppercase tracking-widest text-primary-600/70">Location</p>
+                      </div>
+                      <p className="font-bold font-mono text-primary-600 text-[16px] leading-tight">
+                          {selectedResponse.location?.lat ? selectedResponse.location.lat.toFixed(4) : 'N/A'}<br/>{selectedResponse.location?.lng ? selectedResponse.location.lng.toFixed(4) : ''}
                       </p>
                    </div>
                 </div>
 
                 {/* Answers Section */}
                 <div>
-                   <h4 className="font-black text-gray-900 mb-5 flex items-center text-lg">
-                      <ListChecks className="w-5 h-5 mr-2 text-primary-500" />
+                   <h4 className="font-black text-slate-900 mb-6 flex items-center text-xl tracking-tight">
+                      <div className="bg-gradient-to-r from-primary-500 to-indigo-500 text-white p-1.5 rounded-lg mr-3 shadow-md shadow-primary-500/20">
+                         <ListChecks className="w-5 h-5" />
+                      </div>
                       Submitted Answers
                    </h4>
-                   <div className="space-y-5">
+                   <div className="space-y-4">
                       {selectedResponse.answers?.map((ans, idx) => {
-                         // Attempt to find the human-readable label from the active survey's fields
                          const fieldDef = activeSurvey?.fields?.find(f => f.id === ans.fieldId);
                          const questionLabel = fieldDef ? fieldDef.label : `Field ID: ${ans.fieldId}`;
                          
                          return (
-                           <div key={idx} className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 group hover:border-primary-200 transition-colors">
-                              <label className="block text-sm font-bold text-gray-800 mb-3 leading-snug">
+                           <div key={idx} className="bg-white p-5 rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border border-slate-100 group hover:border-primary-100 hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.04)] transition-all">
+                              <label className="block text-sm font-bold text-slate-800 mb-3 leading-snug">
                                  {questionLabel}
                               </label>
                               <div className="relative">
-                                <input 
-                                   className="w-full bg-gray-50 p-3.5 rounded-xl text-gray-900 border-2 border-transparent focus:border-primary-500 focus:bg-white outline-none transition-all font-medium disabled:opacity-75 disabled:cursor-not-allowed"
-                                   value={Array.isArray(ans.value) ? ans.value.join(', ') : ans.value}
-                                   onChange={(e) => handleAnswerEdit(ans.fieldId, e.target.value)}
-                                   disabled={selectedResponse.status !== 'pending'}
-                                   placeholder="No answer provided"
-                                />
-                                {selectedResponse.status === 'pending' && (
-                                   <Edit3 className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
+                                 {typeof ans.value === 'string' && (ans.value.startsWith('data:image/') || ans.value.startsWith('http')) ? (
+                                    <div className="relative rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center p-2 min-h-[140px] ring-4 ring-transparent group-hover:ring-slate-50 transition-all">
+                                       <img 
+                                          src={ans.value} 
+                                          alt="Response snapshot" 
+                                          className="max-w-full h-auto object-cover rounded-xl shadow-sm"
+                                       />
+                                    </div>
+                                 ) : typeof ans.value === 'string' && ans.value.startsWith('/data/user/') ? (
+                                    <div className="relative rounded-2xl overflow-hidden bg-red-50/50 border border-red-100 flex flex-col items-center justify-center p-8 text-center ring-4 ring-transparent group-hover:ring-red-50/50 transition-all">
+                                       <span className="text-4xl mb-3 drop-shadow-sm">⚠️</span>
+                                       <p className="text-base font-bold text-red-700">Unsynced Local Photo</p>
+                                       <p className="text-sm text-red-500/80 mt-2 max-w-[280px] leading-relaxed">
+                                          This photo was captured using a legacy mobile build and is isolated on the volunteer's phone.
+                                       </p>
+                                    </div>
+                                 ) : (
+                                    <>
+                                      <input 
+                                         className={`w-full p-4 rounded-2xl text-slate-900 border-2 outline-none transition-all font-medium disabled:opacity-80 disabled:cursor-not-allowed ${selectedResponse.status === 'pending' ? 'bg-slate-50 border-slate-100 focus:bg-white focus:border-primary-400 focus:ring-4 focus:ring-primary-50 hover:bg-slate-100/50' : 'bg-transparent border-transparent px-0 text-[15px]'}`}
+                                         value={Array.isArray(ans.value) ? ans.value.join(', ') : ans.value}
+                                         onChange={(e) => handleAnswerEdit(ans.fieldId, e.target.value)}
+                                         disabled={selectedResponse.status !== 'pending'}
+                                         placeholder="No answer provided"
+                                      />
+                                      {selectedResponse.status === 'pending' && (
+                                         <Edit3 className="w-5 h-5 text-slate-300 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+                                      )}
+                                    </>
+                                 )}
                               </div>
                            </div>
                          );
@@ -337,22 +387,23 @@ const Responses = () => {
              </div>
              
              {/* Action Banner Bottom */}
-             <div className="p-6 border-t border-gray-100 bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+             <div className="p-5 border-t border-slate-100 bg-white shadow-[0_-20px_40px_rgba(0,0,0,0.03)] z-10 shrink-0 relative">
                 {selectedResponse.status === 'pending' ? (
                     <button 
                       onClick={() => handleApprove(selectedResponse.id)}
-                      className="w-full btn-premium py-4 rounded-2xl flex justify-center items-center text-lg shadow-primary-600/30 ring-4 ring-primary-50"
+                      className="w-full bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-500 hover:to-indigo-500 text-white font-bold py-4 rounded-2xl flex justify-center items-center text-lg shadow-xl shadow-primary-600/30 ring-4 ring-primary-50 hover:ring-primary-100 transition-all transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
                     >
-                       <ShieldCheck className="w-6 h-6 mr-2" />
+                       <ShieldCheck className="w-6 h-6 mr-2.5" />
                        Save & Approve Response
                     </button>
                 ) : (
-                    <div className="w-full bg-slate-50 border-2 border-slate-100 text-slate-500 font-bold py-4 rounded-2xl text-center flex justify-center items-center">
-                       <Check className="w-5 h-5 mr-2 text-green-500" />
+                    <div className="w-full bg-emerald-50 border-2 border-emerald-100 text-emerald-600 font-bold py-4 rounded-2xl text-center flex justify-center items-center text-[15px] shadow-sm">
+                       <Check className="w-5 h-5 mr-2" />
                        Response is {selectedResponse.status.charAt(0).toUpperCase() + selectedResponse.status.slice(1)}
                     </div>
                 )}
              </div>
+          </div>
           </div>
         </>
       )}

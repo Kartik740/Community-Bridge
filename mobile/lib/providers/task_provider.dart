@@ -32,9 +32,14 @@ class TaskProvider extends ChangeNotifier {
     _tasksStream = FirebaseService.streamTasks(volunteerId);
     _tasksStream!.listen(
       (snapshot) {
-        _tasks = snapshot.docs
+        final newTasks = snapshot.docs
             .map((doc) => TaskModel.fromFirestore(doc))
             .toList();
+        
+        // Sort locally by urgency score descending
+        newTasks.sort((a, b) => b.urgencyScore.compareTo(a.urgencyScore));
+        
+        _tasks = newTasks;
         _loading = false;
         _error = null;
         notifyListeners();

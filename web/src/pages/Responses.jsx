@@ -216,7 +216,7 @@ const Responses = () => {
            </div>
         </div>
       ) : (
-        <div className={`flex-grow space-y-6 transition-all ${selectedResponse ? 'w-2/3' : 'w-full'}`}>
+        <div className={`flex-grow space-y-6 transition-all ${selectedResponse ? 'w-full lg:w-2/3' : 'w-full'}`}>
           <div className="mb-2">
              <button onClick={() => { setActiveSurvey(null); setSelectedResponse(null); }} className="text-primary-600 hover:text-primary-700 text-sm font-bold flex items-center mb-4 transition-colors w-fit">
                 <ChevronLeft className="w-4 h-4 mr-1" /> Back to Surveys
@@ -263,7 +263,8 @@ const Responses = () => {
           </div>
 
         <div className="glass-panel overflow-hidden rounded-3xl">
-          <table className="w-full text-left text-sm text-slate-500">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left text-sm text-slate-500 min-w-[600px]">
             <thead className="bg-slate-50/50 text-slate-700 uppercase text-xs font-bold border-b border-slate-200 backdrop-blur-md">
               <tr>
                 <th className="px-6 py-4 w-10">
@@ -318,7 +319,8 @@ const Responses = () => {
                 ))
               )}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       </div>
       )}

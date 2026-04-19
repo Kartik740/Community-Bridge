@@ -136,12 +136,12 @@ const Volunteers = () => {
       <Toaster position="top-right" />
 
       {/* Header + Tabs */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-black text-gray-900">Volunteers</h1>
           <p className="text-gray-500">Manage your field workers and review applications</p>
         </div>
-        <div className="flex rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+        <div className="flex rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm w-full sm:w-auto">
           <button
             onClick={() => setActiveTab('volunteers')}
             className={`px-5 py-2.5 text-sm font-semibold transition-colors ${

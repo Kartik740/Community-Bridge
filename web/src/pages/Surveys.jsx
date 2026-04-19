@@ -53,7 +53,7 @@ const Surveys = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
            <h1 className="text-2xl font-black text-gray-900">Surveys</h1>
            <p className="text-gray-500">Manage your data collection forms</p>

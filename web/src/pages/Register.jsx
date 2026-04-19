@@ -42,7 +42,7 @@ const Register = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 to-transparent z-10 mix-blend-multiply" />
         <img src="/assets/auth_bg.png" alt="Background" className="absolute w-full h-full object-cover animate-fade-in opacity-70" />
         <div className="relative z-20 text-white max-w-lg px-12 animate-fade-in-up">
-           <h1 className="text-6xl font-display font-black mb-6 leading-tight tracking-tight">Scale Your <br/><span className="text-primary-400">Impact.</span></h1>
+           <h1 className="text-6xl font-display font-black mb-6 leading-tight tracking-tight text-white">Scale Your <br/><span className="text-primary-400">Impact.</span></h1>
            <p className="text-xl text-slate-300 font-medium leading-relaxed">Join the centralized platform that routes intelligent tasks to your volunteers seamlessly.</p>
         </div>
       </div>

@@ -175,9 +175,15 @@ class _TaskCard extends StatelessWidget {
               children: [
                 const Icon(Icons.place_outlined, size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 4),
-                Text(task.areaName,
+                Expanded(
+                  child: Text(
+                    task.areaName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(
-                        fontSize: 12, color: AppColors.textSecondary)),
+                        fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 const Icon(Icons.people_outline, size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 4),

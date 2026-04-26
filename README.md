@@ -14,7 +14,7 @@ Built for **Google Solution Challenge 2026**.
 |---|---|
 | 🌐 Web Dashboard | [community-bridge-4a87d.web.app](https://community-bridge-4a87d.web.app/) |
 | 📱 APK Download | [Download app-release.apk](https://github.com/Kartik740/Community-Bridge/releases/tag/v1.0.0) |
-| 🎥 Demo Video | [YouTube](https://youtube.com) |
+| 🎥 Demo Video | [YouTube](https://youtu.be/fBr4zbMAxfI) |
 
 ---
 
